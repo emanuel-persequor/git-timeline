@@ -18,10 +18,10 @@ class Timeline
 
     // Sizes
     private $xScale;
-    private $width = 1000;
+    private $width = 1580;
     private $xMargin = 50;
     private $yScale;
-    private $height = 600;
+    private $height = 800;
     private $yMargin = 0;
     private $commitRadius = 6;
 
@@ -38,8 +38,8 @@ class Timeline
         // Calculate timeline params
         $this->firstTime = $this->repository->getFirstCommit()->getFirstTime();
         $this->lastTime = $this->repository->getLastCommit()->getLastTime();
-        //$this->firstTime = strtotime("2019-12-01");
-        //$this->lastTime = strtotime("2020-01-03");
+        $this->firstTime = strtotime("2019-12-01");
+        $this->lastTime = strtotime("2020-01-03");
         $this->xScale = $this->width / ($this->lastTime - $this->firstTime);
         $this->yScale = $this->height / count($this->repository->getBranches());
 
@@ -102,46 +102,11 @@ class Timeline
                 $this->svg .= "<circle cx=\"".$x."\" cy=\"".$y."\" r=\"$this->commitRadius\" stroke=\"yellow\" stroke-width=\"0.5\" fill=\"green\" filter=\"url(#commit_shadow)\" />\n";
             }
 
-            /*
-            $this->svg .= "  ref".$c->short."[label=\"".$c->short."\",tooltip=\"".addslashes($c->subject)."\",shape=".("HEAD" == $c->isDefaultBranch() ? 'doubleoctagon':'oval')."];\n";
-            */
-            foreach($c->getParents() as $p) {
-                list($x2, $y2) = $this->getXY($p);
-                $links[] = "<line x1=\"".$x."\" y1=\"$y\" x2=\"$x2\" y2=\"$y2\" style=\"stroke:rgb(100,100,100);stroke-width:1\" />";
-            }
-            /*
-            //$day = date("Y-m-d", strtotime($c['author_date']));
-            $day = $c->getCommitDate("Y-m-d");
-            if(!isset($days[$day])) {
-                $days[$day] = array();
-            }
-            $days[$day][] = "ref".$c->short;
-            */
-        }
-        $this->svg .= "\n".implode("\n", array_unique($links));
-
-
-        // Refs
-        /*
-        foreach($this->repository->getBranches() as $bIndx => $branch)
-        {
-            // if(isset($commits[$branch['ref']]))
+            foreach($c->getParents() as $p)
             {
-                $this->svg .= 'b'.md5($branch->name).'[label="'.$branch->name.'",shape=box,style=filled,fillcolor=green]'.";\n";
-                $this->svg .= "b".md5($branch->name)." -> ref".$branch->ref."[style=dashed];\n";
-                $this->svg .= "{ rank=same; b".md5($branch->name)." ref".$branch->ref."}\n";
+                $this->svg .= $this->makeLink($c, $p);
             }
         }
-
-        foreach($days as $commits) {
-            if(count($commits) > 1) {
-                $this->svg .= "{ rank=same; ".implode(" ", $commits)."}\n";
-            }
-        }
-        */
-
-
-        $this->svg .= "\n}\n";
     }
 
     public function output($file=null)
@@ -181,5 +146,32 @@ class Timeline
         //$y += ($this->yScale*0.5)*(rand(0,1000000)/1000000) - $this->yScale * 0.25;
 
         return array($x,$y);
+    }
+
+    private function makeLink($c, $p)
+    {
+        list($x1, $y1) = $this->getXY($p);
+        list($x2, $y2) = $this->getXY($c);
+        $x1 = ($x1+$this->commitRadius);
+        $x2 = ($x2-$this->commitRadius);
+
+        $xd = abs($x2 - $x1);
+        $yd = $y2 - $y1;
+
+        //if($y1 < $y2)
+        {
+            $x1c = $x1 + $xd * 0.9;
+            $y1c = $y1 + $yd * 0.25;
+            $x2c = $x2 - $xd * 0.9;
+            $y2c = $y2 - $yd * 0.25;
+        }
+        if($x2 < $x1 && $yd == 0)
+        {
+            $y1c = $y1 + $this->commitRadius*2;
+            $y2c = $y2 + $this->commitRadius*2;
+        }
+        //return "<line x1=\"$x\" y1=\"$y\" x2=\"$x2\" y2=\"$y2\" style=\"stroke:rgb(100,100,100);stroke-width:1\" />";
+        return "<path d=\"M $x1 $y1 C $x1c $y1c, $x2c $y2c, $x2 $y2\"  style=\"stroke:rgb(100, 100, 100);stroke-width:1;fill:none;\" />".
+            "<circle r='1.5' cx='$x2'  cy='$y2' style='fill:rgb(0,0,0);stoke:none;' />";
     }
 }
