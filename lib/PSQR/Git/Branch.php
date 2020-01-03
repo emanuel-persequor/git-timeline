@@ -12,7 +12,12 @@ class Branch
     /**
      * @var Commit[]
      */
-    private $history = array();
+    public $history = array();
+    /**
+     * @var Commit
+     */
+    private $_firstCommit = null, $_lastCommit = null;
+
 
     public function __construct(Repository $repository, $logData)
     {
@@ -31,6 +36,53 @@ class Branch
     {
         $this->history[] = $item;
         $item->addBranch($this);
+    }
+
+    public function getVeryShortName()
+    {
+        $parts = explode("/", $this->name);
+        return array_pop($parts);
+    }
+
+    public function matchName($name)
+    {
+        return substr_compare($this->name, $name, -strlen($name)) === 0;
+    }
+
+    public function getFirstCommit()
+    {
+        if(is_null($this->_firstCommit))
+        {
+            foreach($this->history as $c)
+            {
+                if(is_null($this->_firstCommit) ||
+                    $c->getAuthorDate() < $this->_firstCommit->getAuthorDate() ||
+                    $c->getCommitDate() < $this->_firstCommit->getCommitDate()
+                )
+                {
+                    $this->_firstCommit = $c;
+                }
+            }
+        }
+        return $this->_firstCommit;
+    }
+
+    public function getLastCommit()
+    {
+        if(is_null($this->_lastCommit))
+        {
+            foreach($this->history as $c)
+            {
+                if(is_null($this->_lastCommit) ||
+                    $c->getAuthorDate() > $this->_lastCommit->getAuthorDate() ||
+                    $c->getCommitDate() > $this->_lastCommit->getCommitDate()
+                )
+                {
+                    $this->_lastCommit = $c;
+                }
+            }
+        }
+        return $this->_lastCommit;
     }
 
 }

@@ -16,6 +16,14 @@ class Repository
      * @var Branch[]
      */
     private $branches = array();
+    /**
+     * @var Commit
+     */
+    private $_firstCommit = null, $_lastCommit = null;
+    /**
+     * @var bool
+     */
+    private $verbose = true;
 
     public function __construct($gitdir)
     {
@@ -36,34 +44,52 @@ class Repository
         return $output;
     }
 
-    public function init() {
+    private function log($str)
+    {
+        if($this->verbose)
+        {
+            print($str);
+        }
+    }
+
+    public function init($verbose=true) {
+        $this->verbose = $verbose;
         // Commits
         $lines = $this->git('log --reverse --all --parents --pretty=format:"%H|%h|%p|%an|%cI|%aI|%s"', array('sha','short','parents','author','commit_date','author_date','subject'));
-        print("Loading ".count($lines)." commits: ");
+        $this->log("Loading ".count($lines)." commits: ");
         foreach($lines as $l) {
             $this->commits[$l['short']] = new Commit($this, $l);
-            print(".");
+            $this->log(".");
         }
-        print("Done\n");
-
-        // TODO: Link Children/Parent
-        foreach($this->commits as $commit) {
-            $commit->initLinks();
-        }
+        $this->log("Done\n");
 
         // Get all branches
-        $branches = $this->git('for-each-ref --format="%(objectname:short)|%(refname:short)"', array('ref', 'name'));
-
-        // Get all refs
-        foreach($branches as $indx => $l) {
-            if(preg_match('/^origin\\/(.+)$/', $l['name'], $matches)) {
-                $branch = new Branch($this, $l);
-                $history = $this->git('log --reverse --first-parent --pretty=format:"%h" '.$branch->getRef(), array('ref'));
-                foreach($history as $item) {
-                    $branch->addCommit($this->commits[$item]);
+        $branches = $this->git('for-each-ref --format="%(objectname:short)|%(refname)|%(objecttype)"', array('ref', 'name', 'type'));
+        foreach($branches as $l) {
+            if(preg_match('/^refs\\/remotes\\/origin\\/(.+)$/', $l['name'], $matches) ||
+                preg_match('/^refs\\/tags\\/(.+)$/', $l['name'], $matches))
+            {
+                if($l['name'] != 'refs/remotes/origin/HEAD')
+                {
+                    $branch = new Branch($this, $l);
+                    /*
+                    $history = $this->git('log --reverse --first-parent --pretty=format:"%h" '.$branch->getRef(), array('ref'));
+                    foreach($history as $item) {
+                        $branch->addCommit($this->commits[$item]);
+                    }
+                    */
+                    $this->branches[] = $branch;
                 }
-                $this->branches[] = $branch;
             }
+            else
+            {
+                //
+            }
+        }
+
+        // Link Children/Parent/Branches
+        foreach($this->commits as $commit) {
+            $commit->initLinks();
         }
 
     }
@@ -93,4 +119,60 @@ class Repository
         return $this->branches;
     }
 
+    public function getFirstCommit()
+    {
+        if(is_null($this->_firstCommit))
+        {
+            foreach($this->commits as $c)
+            {
+                if(is_null($this->_firstCommit) ||
+                    $c->getAuthorDate() < $this->_firstCommit->getAuthorDate() ||
+                    $c->getCommitDate() < $this->_firstCommit->getCommitDate()
+                )
+                {
+                    $this->_firstCommit = $c;
+                }
+            }
+        }
+        return $this->_firstCommit;
+    }
+
+    public function getLastCommit()
+    {
+        if(is_null($this->_lastCommit))
+        {
+            foreach($this->commits as $c)
+            {
+                if(is_null($this->_lastCommit) ||
+                    $c->getAuthorDate() > $this->_lastCommit->getAuthorDate() ||
+                    $c->getCommitDate() > $this->_lastCommit->getCommitDate()
+                )
+                {
+                    $this->_lastCommit = $c;
+                }
+            }
+        }
+        return $this->_lastCommit;
+    }
+
+
+    /**
+     * @param $name
+     * @return Branch
+     * @throws \Exception
+     */
+    public function findBranch($name)
+    {
+        $branchNames = array();
+        foreach ($this->branches as $branch)
+        {
+            if($branch->matchName($name))
+            {
+                return $branch;
+            }
+            $branchNames[] = $branch->name;
+        }
+        print_r($branchNames);
+        throw new \Exception("No such branch: ".$name." we have (".count($branchNames).")");
+    }
 }
