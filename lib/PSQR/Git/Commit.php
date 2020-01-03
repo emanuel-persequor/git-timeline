@@ -41,9 +41,12 @@ class Commit
     {
         if(is_null($this->branch))
         {
-            $branch = $this->repository->git('name-rev '.$this->sha, array('sha','name-rev'), ' ');
-            $this->nameRev = $branch[0]['name-rev'];
-            $this->setBranch($this->repository->findBranch(preg_replace("/[\\~\\^][0-9]+/", "", $this->nameRev)));
+            if(is_null($this->nameRev))
+            {
+                $branch = $this->repository->git('name-rev '.$this->sha, array('sha','name-rev'), ' ');
+                $this->nameRev = $branch[0]['name-rev'];
+            }
+            $this->setBranch($this->repository->findBranch(preg_replace("/[\\~\\^][0-9\\~\\^]+\$/", "", $this->nameRev)));
         }
 
         if($this->data['parents'] != "")

@@ -24,6 +24,10 @@ class Repository
      * @var bool
      */
     private $verbose = true;
+    /**
+     * @var bool
+     */
+    private $bareRepository;
     public $defaultBranch;
 
     public function __construct($gitdir)
@@ -32,17 +36,22 @@ class Repository
     }
 
     public function git($cmd, $columns,$delimiter="|") {
-        //$gitdir = "/home/emanuel/Development/saga-workbench/.git";
-        //$gitdir = "/home/emanuel/Development/SAGA/saga/.git";
         exec("git --git-dir=\"$this->gitdir\" ".$cmd, $output);
 
-        foreach($output as &$line) {
+        foreach($output as &$line)
+        {
             $line = trim($line);
-            if(count($columns) > 1) {
+            if(count($columns) > 1)
+            {
                 $line = array_combine($columns, explode($delimiter, $line, count($columns)));
             }
         }
         return $output;
+    }
+
+    private function gitRaw($cmd)
+    {
+        return implode("\n", $this->git($cmd, array()));
     }
 
     private function log($str)
@@ -56,15 +65,17 @@ class Repository
     public function init($verbose=true) {
         $this->verbose = $verbose;
 
-        // What is my default branch
-        $this->defaultBranch = str_replace("origin/", "", $this->git("symbolic-ref --short refs/remotes/origin/HEAD", array())[0]);
+        // Is this a bare repository
+        $this->bareRepository = $this->gitRaw("rev-parse --is-bare-repository");
 
+        // What is my default branch
+        $this->defaultBranch = str_replace("origin/", "", $this->gitRaw("symbolic-ref --short ".($this->bareRepository?"HEAD":"refs/remotes/origin/HEAD")));
 
         // Commits
-        $lines = $this->git('log --reverse --all --parents --pretty=format:"%H|%h|%p|%an|%cI|%aI|%s"', array('sha','short','parents','author','commit_date','author_date','subject'));
+        $lines = $this->git('log --reverse --all --parents --pretty=format:"%H|%h|%P|%an|%cI|%aI|%s"', array('sha','short','parents','author','commit_date','author_date','subject'));
         $this->log("Loading ".count($lines)." commits: ");
         foreach($lines as $l) {
-            $this->commits[$l['short']] = new Commit($this, $l);
+            $this->commits[$l['sha']] = new Commit($this, $l);
             $this->log(".");
         }
         $this->log("Done\n");
@@ -73,7 +84,8 @@ class Repository
         $branches = $this->git('for-each-ref --format="%(objectname)|%(refname)|%(objecttype)"', array('ref', 'name', 'type'));
         foreach($branches as $l)
         {
-            if(preg_match('/^refs\\/remotes\\/origin\\/(.+)$/', $l['name'], $matches) ||
+            if($this->bareRepository ||
+                preg_match('/^refs\\/remotes\\/origin\\/(.+)$/', $l['name'], $matches) ||
                 preg_match('/^refs\\/tags\\/(.+)$/', $l['name'], $matches))
             {
                 $branch = new Branch($this, $l);
@@ -82,7 +94,7 @@ class Repository
                     if($branch->isDefaultBranch())
                     {
                         // All commits in this branch live here
-                        $history = $this->git('log --reverse --first-parent --pretty=format:"%h" '.$branch->getRef(), array('ref'));
+                        $history = $this->git('log --reverse --first-parent --pretty=format:"%H" '.$branch->getRef(), array('ref'));
                         foreach($history as $item) {
                             //$branch->addCommit();
                             $this->commits[$item]->setBranch($branch);
@@ -93,8 +105,19 @@ class Repository
             }
         }
 
+        // Read 'name-rev' for all commits
+        $lines = $this->git("name-rev --all --always", array("sha", "name"), " ");
+        $this->log("Set name-rev on ".count($lines)." commits: ");
+        foreach($lines as $i)
+        {
+            //$short = $this->gitRaw("rev-parse --short ".$i['sha']);
+            $this->commits[$i['sha']]->nameRev = $i['name'];
+            $this->log(".");
+        }
+        $this->log("Done\n");
+
         // Link Children/Parent/Branches
-        $this->log("Linking ".count($lines)." commits");
+        $this->log("Linking ".count($lines)." commits: ");
         foreach($this->commits as $commit)
         {
             $commit->initLinks();
@@ -120,7 +143,8 @@ class Repository
      */
     public function getCommit($sha)
     {
-        if(!isset($this->commits[$sha])) {
+        if(!isset($this->commits[$sha]))
+        {
             throw new \Exception("No such commit: ".$sha);
         }
         return $this->commits[$sha];
