@@ -89,9 +89,9 @@ class Branch
         return $this->getVeryShortName() == $this->repository->defaultBranch;
     }
 
-    public function isTag()
+    public function isRelease()
     {
-        return strpos($this->name, "/tags/") !== false;
+        return strpos($this->name, "release/") !== false;
     }
 
     public function isUnmerged()
@@ -106,4 +106,18 @@ class Branch
         return false;
     }
 
+    public function overlapDateRange($from, $to)
+    {
+        $selfFrom = $this->getFirstCommit()->getFirstTime();
+        if($selfFrom > $to)
+        {
+            return false;
+        }
+        $selfTo = $this->getLastCommit()->getLastTime();
+        if($selfTo < $from)
+        {
+            return false;
+        }
+        return true;
+    }
 }

@@ -25,6 +25,7 @@ class Timeline
     private $height = 800;
     private $yMargin = 0;
     private $commitRadius = 6;
+    private $yAxis = array();
 
     public function __construct(\PSQR\Git\Repository $repository)
     {
@@ -42,11 +43,10 @@ class Timeline
         $this->firstTime = strtotime("2019-12-01");
         $this->lastTime = strtotime("2020-01-03");
         $this->xScale = $this->width / ($this->lastTime - $this->firstTime);
-        $this->yScale = $this->height / count($this->repository->getBranches());
+        $branches = array_filter($this->repository->getBranches(), function($b) { return $b->overlapDateRange($this->firstTime, $this->lastTime);});
+        $this->yScale = $this->height / count($branches);
 
         // Y-axis
-        $this->yAxis = array();
-        $branches = $this->repository->getBranches();
         usort($branches, function($b1,$b2){return $b1->getFirstCommit()->getFirstTime()-$b2->getFirstCommit()->getFirstTime();});
         foreach($branches as $branch)
         {
@@ -182,7 +182,7 @@ class Timeline
         {
             return "rgb(150,240,180)";
         }
-        if($branch->isTag())
+        if($branch->isRelease())
         {
             return "rgb(200,250,220)";
         }
