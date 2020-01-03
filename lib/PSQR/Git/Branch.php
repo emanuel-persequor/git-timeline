@@ -89,4 +89,21 @@ class Branch
         return $this->getVeryShortName() == $this->repository->defaultBranch;
     }
 
+    public function isTag()
+    {
+        return strpos($this->name, "/tags/") !== false;
+    }
+
+    public function isUnmerged()
+    {
+        foreach($this->history as $c)
+        {
+            if($c->isEndCommit())
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
 }

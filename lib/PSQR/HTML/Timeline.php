@@ -2,6 +2,7 @@
 namespace PSQR\HTML;
 
 
+use PSQR\Git\Branch;
 use PSQR\Git\Commit;
 
 class Timeline
@@ -79,7 +80,8 @@ class Timeline
             $branch = $this->repository->findBranch($branchName);
             $x = $this->getXFromTime($branch->getFirstCommit()->getFirstTime()) - $this->commitRadius*2;
             $x2 = $this->getXFromTime($branch->getLastCommit()->getLastTime()) + $this->commitRadius*2;
-            $this->svg .= "<rect x=\"$x\" y=\"".($y+$this->commitRadius*0.25)."\" width=\"".($x2 - $x)."\" rx=\"".($this->commitRadius/2)."\" ry=\"".($this->commitRadius/2)."\" height=\"".($this->yScale-$this->commitRadius*0.5)."\" style=\"fill:rgb(255,255,160); fill-opacity:0.4; stroke-width: 1; stroke: rgb(100,100,100); stroke-dasharray: 5 2; \" />\n";
+            $this->svg .= "<rect x=\"$x\" y=\"".($y+$this->commitRadius*0.25)."\" width=\"".($x2 - $x)."\" rx=\"".($this->commitRadius/2)."\" ry=\"".($this->commitRadius/2)."\" height=\"".($this->yScale-$this->commitRadius*0.5)."\" ".
+                "style=\"fill:".$this->getBranchColor($branch)."; fill-opacity:0.4; stroke-width: 1; stroke: rgb(100,100,100); stroke-dasharray: 5 2; \" />\n";
 
 
             // Label
@@ -173,5 +175,23 @@ class Timeline
         //return "<line x1=\"$x\" y1=\"$y\" x2=\"$x2\" y2=\"$y2\" style=\"stroke:rgb(100,100,100);stroke-width:1\" />";
         return "<path d=\"M $x1 $y1 C $x1c $y1c, $x2c $y2c, $x2 $y2\"  style=\"stroke:rgb(100, 100, 100);stroke-width:1;fill:none;\" />".
             "<circle r='1.5' cx='$x2'  cy='$y2' style='fill:rgb(0,0,0);stoke:none;' />";
+    }
+
+    private function getBranchColor(Branch $branch)
+    {
+        if($branch->isDefaultBranch())
+        {
+            return "rgb(150,240,180)";
+        }
+        if($branch->isTag())
+        {
+            return "rgb(200,250,220)";
+        }
+        if($branch->isUnmerged())
+        {
+            return "rgb(240,150,120)";
+        }
+
+        return "rgb(255,255,160)";
     }
 }
