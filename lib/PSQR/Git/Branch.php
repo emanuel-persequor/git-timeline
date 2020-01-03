@@ -35,7 +35,6 @@ class Branch
     public function addCommit(Commit $item)
     {
         $this->history[] = $item;
-        $item->addBranch($this);
     }
 
     public function getVeryShortName()
@@ -83,6 +82,11 @@ class Branch
             }
         }
         return $this->_lastCommit;
+    }
+
+    public function isDefaultBranch()
+    {
+        return $this->getVeryShortName() == $this->repository->defaultBranch;
     }
 
 }

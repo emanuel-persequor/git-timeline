@@ -24,6 +24,7 @@ class Repository
      * @var bool
      */
     private $verbose = true;
+    public $defaultBranch;
 
     public function __construct($gitdir)
     {
@@ -54,6 +55,11 @@ class Repository
 
     public function init($verbose=true) {
         $this->verbose = $verbose;
+
+        // What is my default branch
+        $this->defaultBranch = str_replace("origin/", "", $this->git("symbolic-ref --short refs/remotes/origin/HEAD", array())[0]);
+
+
         // Commits
         $lines = $this->git('log --reverse --all --parents --pretty=format:"%H|%h|%p|%an|%cI|%aI|%s"', array('sha','short','parents','author','commit_date','author_date','subject'));
         $this->log("Loading ".count($lines)." commits: ");
@@ -69,15 +75,18 @@ class Repository
             if(preg_match('/^refs\\/remotes\\/origin\\/(.+)$/', $l['name'], $matches) ||
                 preg_match('/^refs\\/tags\\/(.+)$/', $l['name'], $matches))
             {
-                if($l['name'] != 'refs/remotes/origin/HEAD')
+                $branch = new Branch($this, $l);
+                if($branch->getVeryShortName() != 'HEAD')
                 {
-                    $branch = new Branch($this, $l);
-                    /*
-                    $history = $this->git('log --reverse --first-parent --pretty=format:"%h" '.$branch->getRef(), array('ref'));
-                    foreach($history as $item) {
-                        $branch->addCommit($this->commits[$item]);
+                    if($branch->isDefaultBranch())
+                    {
+                        // All commits in this branch live here
+                        $history = $this->git('log --reverse --first-parent --pretty=format:"%h" '.$branch->getRef(), array('ref'));
+                        foreach($history as $item) {
+                            //$branch->addCommit();
+                            $this->commits[$item]->setBranch($branch);
+                        }
                     }
-                    */
                     $this->branches[] = $branch;
                 }
             }
@@ -88,7 +97,8 @@ class Repository
         }
 
         // Link Children/Parent/Branches
-        foreach($this->commits as $commit) {
+        foreach($this->commits as $commit)
+        {
             $commit->initLinks();
         }
 

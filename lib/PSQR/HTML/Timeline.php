@@ -38,8 +38,8 @@ class Timeline
         // Calculate timeline params
         $this->firstTime = $this->repository->getFirstCommit()->getFirstTime();
         $this->lastTime = $this->repository->getLastCommit()->getLastTime();
-        $this->firstTime = strtotime("2019-12-01");
-        $this->lastTime = strtotime("2020-01-03");
+        //$this->firstTime = strtotime("2019-12-01");
+        //$this->lastTime = strtotime("2020-01-03");
         $this->xScale = $this->width / ($this->lastTime - $this->firstTime);
         $this->yScale = $this->height / count($this->repository->getBranches());
 

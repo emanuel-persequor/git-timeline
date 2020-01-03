@@ -22,10 +22,6 @@ class Commit
      * @var Commit[]
      */
     private $children = array();
-    /**
-     * @var Branch[]
-     */
-    private $branches = array();
 
     public function __construct(Repository $repository, $logData)
     {
@@ -36,24 +32,22 @@ class Commit
         $this->data = $logData;
     }
 
-    public function addBranch(Branch $branch)
-    {
-        $this->branches[] = $branch;
-    }
-
     public function isDefaultBranch()
     {
-        return $this->branch->getVeryShortName() == "HEAD" || $this->branch->getVeryShortName() == "master";
+        return $this->branch->isDefaultBranch();
     }
 
     public function initLinks()
     {
         $branch = $this->repository->git('name-rev '.$this->sha, array('sha','name-rev'), ' ');
         $this->nameRev = $branch[0]['name-rev'];
-        $this->branch = $this->repository->findBranch(preg_replace("/[\\~\\^][0-9]+/", "", $this->nameRev));
-        $this->branch->addCommit($this);
+        if(is_null($this->branch))
+        {
+            $this->setBranch($this->repository->findBranch(preg_replace("/[\\~\\^][0-9]+/", "", $this->nameRev)));
+        }
 
-        if($this->data['parents'] != "") {
+        if($this->data['parents'] != "")
+        {
             foreach (explode(" ", $this->data['parents']) as $p) {
                 $parent = $this->repository->getCommit($p);
                 $this->parents[] = $parent;
@@ -61,6 +55,16 @@ class Commit
             }
         }
     }
+
+    public function setBranch(Branch $branch)
+    {
+        if(is_null($this->branch))
+        {
+            $this->branch = $branch;
+            $branch->addCommit($this);
+        }
+    }
+
 
     public function getParents()
     {
