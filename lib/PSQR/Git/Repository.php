@@ -81,7 +81,7 @@ class Repository
         $this->log("Done\n");
 
         // Get all branches
-        $branches = $this->git('for-each-ref --format="%(objectname)|%(refname)|%(objecttype)"', array('ref', 'name', 'type'));
+        $branches = $this->git('for-each-ref --format="%(objectname)|%(refname)|%(objecttype)"', array('objectname', 'refname', 'objecttype'));
         foreach($branches as $l)
         {
             if($this->bareRepository ||
@@ -94,7 +94,7 @@ class Repository
                     if($branch->isDefaultBranch())
                     {
                         // All commits in this branch live here
-                        $history = $this->git('log --reverse --first-parent --pretty=format:"%H" '.$branch->getRef(), array('ref'));
+                        $history = $this->git('log --reverse --first-parent --pretty=format:"%H" '.$branch->refname, array('ref'));
                         foreach($history as $item) {
                             //$branch->addCommit();
                             $this->commits[$item]->setBranch($branch);
@@ -127,6 +127,10 @@ class Repository
 
         // Prune empty branches
         $this->branches = array_filter($this->branches, function($b){return count($b->history) > 0;});
+
+        // TODO: Tags
+        // git tag --list
+        // git rev-parse <sha>
     }
 
     /**
@@ -206,7 +210,7 @@ class Repository
             {
                 return $branch;
             }
-            $branchNames[] = $branch->name;
+            $branchNames[] = $branch->refname;
         }
         print_r($branchNames);
         throw new \Exception("No such branch: ".$name." we have (".count($branchNames).")");

@@ -5,6 +5,21 @@ namespace PSQR\HTML;
 use PSQR\Git\Branch;
 use PSQR\Git\Commit;
 
+class YAxisBranch
+{
+    /**
+     * @var Branch
+     */
+    public $branch;
+    public $y;
+
+    public function __construct(Branch $branch, $y)
+    {
+        $this->branch = $branch;
+        $this->y = $y;
+    }
+}
+
 class Timeline
 {
     private $svg;
@@ -25,6 +40,9 @@ class Timeline
     private $height = 800;
     private $yMargin = 0;
     private $commitRadius = 6;
+    /**
+     * @var YAxisBranch[]
+     */
     private $yAxis = array();
 
     public function __construct(\PSQR\Git\Repository $repository)
@@ -41,7 +59,7 @@ class Timeline
         $this->firstTime = $this->repository->getFirstCommit()->getFirstTime();
         $this->lastTime = $this->repository->getLastCommit()->getLastTime();
         $this->firstTime = strtotime("2019-12-01");
-        $this->lastTime = strtotime("2020-01-03");
+        $this->lastTime = strtotime("2020-01-10");
         $this->xScale = $this->width / ($this->lastTime - $this->firstTime);
         $branches = array_filter($this->repository->getBranches(), function($b) { return $b->overlapDateRange($this->firstTime, $this->lastTime);});
         $this->yScale = $this->height / count($branches);
@@ -50,7 +68,7 @@ class Timeline
         usort($branches, function($b1,$b2){return $b1->getFirstCommit()->getFirstTime()-$b2->getFirstCommit()->getFirstTime();});
         foreach($branches as $branch)
         {
-            $this->yAxis[$branch->getVeryShortName()] = count($this->yAxis) * $this->yScale;
+            $this->yAxis[$branch->refname] = new YAxisBranch($branch, count($this->yAxis) * $this->yScale);
         }
         //print_r($this->yAxis); die();
 
@@ -68,24 +86,24 @@ class Timeline
 
         // Print the swim-lanes
         $odd = true;
-        foreach($this->yAxis as $branchName => $y)
+        foreach($this->yAxis as $yAxisBranch)
         {
+            $y = $yAxisBranch->y;
             if(!$odd)
             {
                 $this->svg .= "<rect x=\"0\" y=\"$y\" width=\"".($this->width+$this->xMargin*2)."\" height=\"$this->yScale\" style=\"fill:rgb(230,230,230); stroke:none; fill-opacity:0.6;\" />\n";
             }
 
             // Period of time
-            $branch = $this->repository->findBranch($branchName);
-            $x = $this->getXFromTime($branch->getFirstCommit()->getFirstTime()) - $this->commitRadius*2;
-            $x2 = $this->getXFromTime($branch->getLastCommit()->getLastTime()) + $this->commitRadius*2;
+            $x = $this->getXFromTime($yAxisBranch->branch->getFirstCommit()->getFirstTime()) - $this->commitRadius*2;
+            $x2 = $this->getXFromTime($yAxisBranch->branch->getLastCommit()->getLastTime()) + $this->commitRadius*2;
             $this->svg .= "<rect x=\"$x\" y=\"".($y+$this->commitRadius*0.25)."\" width=\"".($x2 - $x)."\" rx=\"".($this->commitRadius/2)."\" ry=\"".($this->commitRadius/2)."\" height=\"".($this->yScale-$this->commitRadius*0.5)."\" ".
-                "style=\"fill:".$this->getBranchColor($branch)."; fill-opacity:0.4; stroke-width: 1; stroke: rgb(100,100,100); stroke-dasharray: 5 2; \" />\n";
+                "style=\"fill:".$this->getBranchColor($yAxisBranch->branch)."; fill-opacity:0.4; stroke-width: 1; stroke: rgb(100,100,100); stroke-dasharray: 5 2; \" />\n";
 
 
             // Label
             $fontSize = 8;
-            $this->svg .= "<text x=\"0\" y=\"".($y + ($this->yScale+$fontSize)/2.0)."\" fill=\"black\" font-size=\"$fontSize\">".$branchName."</text>\n";
+            $this->svg .= "<text x=\"0\" y=\"".($y + ($this->yScale+$fontSize)/2.0)."\" fill=\"black\" font-size=\"$fontSize\">".$yAxisBranch->branch->getVeryShortName()."</text>\n";
             $odd = !$odd;
         }
 
@@ -142,7 +160,14 @@ class Timeline
     private function getXY(Commit $c)
     {
         $x = $this->getXFromTime($c->getFirstTime());
-        $y = $this->yAxis[$c->branch->getVeryShortName()] + $this->yScale * 0.5 + $this->yMargin;
+        if(isset($this->yAxis[$c->branch->refname]))
+        {
+            $y = $this->yAxis[$c->branch->refname]->y + $this->yScale * 0.5 + $this->yMargin;
+        }
+        else
+        {
+            $y = $this->yScale * 0.5 + $this->yMargin;
+        }
         //srand(hexdec($c->short));
         //$y += ($this->yScale*0.5)*(rand(0,1000000)/1000000) - $this->yScale * 0.25;
 

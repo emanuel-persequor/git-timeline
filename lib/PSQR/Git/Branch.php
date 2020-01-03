@@ -6,9 +6,9 @@ namespace PSQR\Git;
 class Branch
 {
     private $repository;
-    public $ref;
-    public $name;
-    public $short;
+    public $objectname;
+    public $refname;
+    //public $short;
     /**
      * @var Commit[]
      */
@@ -22,14 +22,9 @@ class Branch
     public function __construct(Repository $repository, $logData)
     {
         $this->repository = $repository;
-        $this->ref = $logData['ref'];
-        $this->name = $logData['name'];
-        $this->short = substr($this->name, 7);
-    }
-
-    public function getRef()
-    {
-        return $this->ref;
+        $this->objectname = $logData['objectname'];
+        $this->refname = $logData['refname'];
+        //$this->short = substr($this->name, 7);
     }
 
     public function addCommit(Commit $item)
@@ -39,13 +34,13 @@ class Branch
 
     public function getVeryShortName()
     {
-        $parts = explode("/", $this->name);
+        $parts = explode("/", $this->refname);
         return array_pop($parts);
     }
 
     public function matchName($name)
     {
-        return substr_compare($this->name, $name, -strlen($name)) === 0;
+        return substr_compare($this->refname, $name, -strlen($name)) === 0;
     }
 
     public function getFirstCommit()
@@ -91,7 +86,7 @@ class Branch
 
     public function isRelease()
     {
-        return strpos($this->name, "release/") !== false;
+        return strpos($this->refname, "release/") !== false;
     }
 
     public function isUnmerged()
