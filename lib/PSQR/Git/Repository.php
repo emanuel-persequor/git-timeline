@@ -35,7 +35,8 @@ class Repository
         $this->gitdir = $gitdir;
     }
 
-    public function git($cmd, $columns,$delimiter="|") {
+    public function git($cmd, $columns,$delimiter="|")
+    {
         exec("git --git-dir=\"$this->gitdir\" ".$cmd, $output);
 
         foreach($output as &$line)
@@ -66,7 +67,7 @@ class Repository
         $this->verbose = $verbose;
 
         // Is this a bare repository
-        $this->bareRepository = $this->gitRaw("rev-parse --is-bare-repository");
+        $this->bareRepository = ($this->gitRaw("rev-parse --is-bare-repository") === "true");
 
         // What is my default branch
         $this->defaultBranch = str_replace("origin/", "", $this->gitRaw("symbolic-ref --short ".($this->bareRepository?"HEAD":"refs/remotes/origin/HEAD")));
@@ -85,8 +86,8 @@ class Repository
         foreach($branches as $l)
         {
             if($this->bareRepository ||
-                preg_match('/^refs\\/remotes\\/origin\\/(.+)$/', $l['name'], $matches) ||
-                preg_match('/^refs\\/tags\\/(.+)$/', $l['name'], $matches))
+                preg_match('/^refs\\/remotes\\/origin\\/(.+)$/', $l['refname'], $matches) ||
+                preg_match('/^refs\\/tags\\/(.+)$/', $l['refname'], $matches))
             {
                 $branch = new Branch($this, $l);
                 if($branch->getVeryShortName() != 'HEAD')
@@ -95,7 +96,8 @@ class Repository
                     {
                         // All commits in this branch live here
                         $history = $this->git('log --reverse --first-parent --pretty=format:"%H" '.$branch->refname, array('ref'));
-                        foreach($history as $item) {
+                        foreach($history as $item)
+                        {
                             //$branch->addCommit();
                             $this->commits[$item]->setBranch($branch);
                         }
@@ -106,11 +108,15 @@ class Repository
         }
 
         // Read 'name-rev' for all commits
-        $lines = $this->git("name-rev --all --always", array("sha", "name"), " ");
+        $lines = $this->git("name-rev --refs \"".($this->bareRepository?"*heads*":"*refs/remotes/origin*")."\" --all --always", array("sha", "name"), " ");
         $this->log("Set name-rev on ".count($lines)." commits: ");
         foreach($lines as $i)
         {
-            //$short = $this->gitRaw("rev-parse --short ".$i['sha']);
+            if($i['name'] == "undefined")
+            {
+                print_r($i);
+                die();
+            }
             $this->commits[$i['sha']]->nameRev = $i['name'];
             $this->log(".");
         }
@@ -203,6 +209,10 @@ class Repository
      */
     public function findBranch($name)
     {
+        if(substr_compare($name, "/HEAD", -5) === 0)
+        {
+            $name = $this->defaultBranch;
+        }
         $branchNames = array();
         foreach ($this->branches as $branch)
         {
