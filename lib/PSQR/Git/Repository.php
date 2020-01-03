@@ -29,6 +29,10 @@ class Repository
      */
     private $bareRepository;
     public $defaultBranch;
+    /**
+     * @var Commit[]
+     */
+    public $tags = array();
 
     public function __construct($gitdir)
     {
@@ -114,8 +118,7 @@ class Repository
         {
             if($i['name'] == "undefined")
             {
-                print_r($i);
-                die();
+                throw new \Exception("could not find branch for: ".$i['sha']);
             }
             $this->commits[$i['sha']]->nameRev = $i['name'];
             $this->log(".");
@@ -134,9 +137,12 @@ class Repository
         // Prune empty branches
         $this->branches = array_filter($this->branches, function($b){return count($b->history) > 0;});
 
-        // TODO: Tags
-        // git tag --list
-        // git rev-parse <sha>
+        // Tags
+        $tagList = $this->git("tag --list", array("tag"));
+        foreach($tagList as $t)
+        {
+            $this->tags[$t] = $this->commits[$this->gitRaw("rev-parse \"".$t."\"")];
+        }
     }
 
     /**

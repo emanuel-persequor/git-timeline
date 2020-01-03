@@ -107,8 +107,7 @@ class Timeline
             $odd = !$odd;
         }
 
-
-        $links = array();
+        // Print all commits
         foreach($this->repository->getCommits() as $c)
         {
             list($x,$y) = $this->getXY($c);
@@ -125,6 +124,15 @@ class Timeline
             {
                 $this->svg .= $this->makeLink($c, $p);
             }
+        }
+
+        // Print tags
+        foreach($this->repository->tags as $tag => $commit)
+        {
+            list($x,$y) = $this->getXY($commit);
+            $y += $this->yScale;
+            $this->svg .= "<text x=\"$x\" y=\"$y\" style=\"stroke:yellow; stroke-width:0.6em\" transform=\"rotate(90 $x,$y)\">".$tag."</text>\n";
+            $this->svg .= "<text x=\"$x\" y=\"$y\" style=\"stroke:black;\" transform=\"rotate(90 $x,$y)\">".$tag."</text>\n";
         }
     }
 
