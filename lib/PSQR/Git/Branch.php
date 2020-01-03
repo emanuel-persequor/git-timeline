@@ -89,6 +89,11 @@ class Branch
         return strpos($this->refname, "release/") !== false;
     }
 
+    public function isTag()
+    {
+        return strpos($this->refname, "tags/") !== false;
+    }
+
     public function isUnmerged()
     {
         foreach($this->history as $c)

@@ -59,7 +59,7 @@ class Timeline
         $this->firstTime = $this->repository->getFirstCommit()->getFirstTime();
         $this->lastTime = $this->repository->getLastCommit()->getLastTime();
         $this->firstTime = strtotime("2019-12-01");
-        $this->lastTime = strtotime("2020-01-10");
+        $this->lastTime = strtotime("2020-01-04");
         $this->xScale = $this->width / ($this->lastTime - $this->firstTime);
         $branches = array_filter($this->repository->getBranches(), function($b) { return $b->overlapDateRange($this->firstTime, $this->lastTime);});
         $this->yScale = $this->height / count($branches);
@@ -205,17 +205,21 @@ class Timeline
     {
         if($branch->isDefaultBranch())
         {
-            return "rgb(150,240,180)";
+            return "rgb(0,200,0)";
         }
         if($branch->isRelease())
         {
             return "rgb(200,250,220)";
+        }
+        if($branch->isTag())
+        {
+            return "rgb(250,250,0)";
         }
         if($branch->isUnmerged())
         {
             return "rgb(240,150,120)";
         }
 
-        return "rgb(255,255,160)";
+        return "rgb(50,100,250)";
     }
 }
