@@ -39,16 +39,17 @@ class Commit
 
     public function initLinks()
     {
-        $branch = $this->repository->git('name-rev '.$this->sha, array('sha','name-rev'), ' ');
-        $this->nameRev = $branch[0]['name-rev'];
         if(is_null($this->branch))
         {
+            $branch = $this->repository->git('name-rev '.$this->sha, array('sha','name-rev'), ' ');
+            $this->nameRev = $branch[0]['name-rev'];
             $this->setBranch($this->repository->findBranch(preg_replace("/[\\~\\^][0-9]+/", "", $this->nameRev)));
         }
 
         if($this->data['parents'] != "")
         {
-            foreach (explode(" ", $this->data['parents']) as $p) {
+            foreach (explode(" ", $this->data['parents']) as $p)
+            {
                 $parent = $this->repository->getCommit($p);
                 $this->parents[] = $parent;
                 $parent->children[] = $this;

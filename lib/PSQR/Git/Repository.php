@@ -70,8 +70,9 @@ class Repository
         $this->log("Done\n");
 
         // Get all branches
-        $branches = $this->git('for-each-ref --format="%(objectname:short)|%(refname)|%(objecttype)"', array('ref', 'name', 'type'));
-        foreach($branches as $l) {
+        $branches = $this->git('for-each-ref --format="%(objectname)|%(refname)|%(objecttype)"', array('ref', 'name', 'type'));
+        foreach($branches as $l)
+        {
             if(preg_match('/^refs\\/remotes\\/origin\\/(.+)$/', $l['name'], $matches) ||
                 preg_match('/^refs\\/tags\\/(.+)$/', $l['name'], $matches))
             {
@@ -90,18 +91,19 @@ class Repository
                     $this->branches[] = $branch;
                 }
             }
-            else
-            {
-                //
-            }
         }
 
         // Link Children/Parent/Branches
+        $this->log("Linking ".count($lines)." commits");
         foreach($this->commits as $commit)
         {
             $commit->initLinks();
+            $this->log(".");
         }
+        $this->log("Done\n");
 
+        // Prune empty branches
+        $this->branches = array_filter($this->branches, function($b){return count($b->history) > 0;});
     }
 
     /**

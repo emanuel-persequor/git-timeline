@@ -47,7 +47,6 @@ class Timeline
         // Y-axis
         $this->yAxis = array();
         $branches = $this->repository->getBranches();
-        //$branches = array_filter($branches, function($b){return count($b->history) > 0;});
         usort($branches, function($b1,$b2){return $b1->getFirstCommit()->getFirstTime()-$b2->getFirstCommit()->getFirstTime();});
         foreach($branches as $branch)
         {
