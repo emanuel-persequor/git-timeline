@@ -1,0 +1,22 @@
+{
+  "name":"psqr/git-timeline",
+  "description":"A timeline based visualizer for GIT",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Emanuel Greisen",
+      "email": "emanuel.greisen@persequor.com",
+      "homepage": "https://www.persequor.com",
+      "role": "Developer"
+    }
+  ],
+  "require": {
+    "php" : "^7.0"
+  },
+  "autoload": {
+    "psr-0": {
+      "PSQR\\": "src/"
+    }
+  }
+
+}

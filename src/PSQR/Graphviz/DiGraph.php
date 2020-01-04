@@ -40,9 +40,9 @@ class DiGraph
         foreach($this->repository->getBranches() as $bIndx => $branch) {
             // if(isset($commits[$branch['ref']]))
             {
-                $this->dot .= 'b'.md5($branch->name).'[label="'.$branch->name.'",shape=box,style=filled,fillcolor=green]'.";\n";
-                $this->dot .= "b".md5($branch->name)." -> ref".$branch->ref."[style=dashed];\n";
-                $this->dot .= "{ rank=same; b".md5($branch->name)." ref".$branch->ref."}\n";
+                $this->dot .= 'b'.md5($branch->refname).'[label="'.$branch->getVeryShortName().'",shape=box,style=filled,fillcolor=green]'.";\n";
+                $this->dot .= "b".md5($branch->refname)." -> ref".$branch->objectname."[style=dashed];\n";
+                $this->dot .= "{ rank=same; b".md5($branch->refname)." ref".$branch->objectname."}\n";
             }
         }
 

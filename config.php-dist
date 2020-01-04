@@ -1,0 +1,7 @@
+<?php
+
+// Example: Working copy as base
+//$repoGitPath = "/home/user/gitrepo/.git";
+
+// Example: "bare" Git repository
+//$repoGitPath = "/home/user/gitrepobare/";
