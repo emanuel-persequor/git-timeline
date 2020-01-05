@@ -120,4 +120,21 @@ class Branch
         }
         return true;
     }
+
+    public function getType()
+    {
+        if($this->isDefaultBranch())
+        {
+            return "master";
+        }
+        if($this->isRelease())
+        {
+            return "release";
+        }
+        if($this->isTag())
+        {
+            return "tag";
+        }
+        return "feature";
+    }
 }

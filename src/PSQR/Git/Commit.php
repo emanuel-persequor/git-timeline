@@ -111,4 +111,14 @@ class Commit
     {
         return count($this->children) == 0;
     }
+
+    public function getAuthor()
+    {
+        return $this->data['author'];
+    }
+
+    public function getSubject()
+    {
+        return $this->data['subject'];
+    }
 }
