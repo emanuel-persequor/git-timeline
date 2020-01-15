@@ -30,8 +30,7 @@ $json->generate();
 
     var repo = <?php $json->output(); ?>;
 
-    var hest = "123";
-    var data = Array();
+    var commitData = Array();
 
     function getBranchIndx(branch) {
         let i = 0;
@@ -45,7 +44,7 @@ $json->generate();
     }
 
     for (let [sha, commit] of Object.entries(repo.commits)) {
-        data.push({
+        commitData.push({
             'sha':sha,
             'x': new Date(commit.firstTime*1000),
             'y':getBranchIndx(commit.branch),
@@ -53,7 +52,7 @@ $json->generate();
         });
     }
 
-    console.log(data);
+    console.log(commitData);
 
 
     // set the dimensions and margins of the graph
@@ -73,7 +72,7 @@ $json->generate();
     //Read the data
     {
         // Add X axis
-        var x_extend = d3.extent(data, d => d.x);
+        var x_extend = d3.extent(commitData, d => d.x);
         var x = d3.scaleTime()
             .domain(x_extend)
             .range([ 0, width ]);
@@ -83,7 +82,7 @@ $json->generate();
 
         // Add Y axis
         var y = d3.scaleLinear()
-            .domain(d3.extent(data, d => d.y))
+            .domain(d3.extent(commitData, d => d.y))
             .range([ height, 0]);
         //Svg.append("g")
         //    .call(d3.axisLeft(y));
@@ -114,7 +113,7 @@ $json->generate();
         // Add circles
         scatter
             .selectAll("circle")
-            .data(data)
+            .data(commitData)
             .enter()
             .append("circle")
             .attr("cx", function (d) { return x(d.x); } )
