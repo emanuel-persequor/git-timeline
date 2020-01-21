@@ -58,8 +58,8 @@ class Timeline
         // Calculate timeline params
         $this->firstTime = $this->repository->getFirstCommit()->getFirstTime();
         $this->lastTime = $this->repository->getLastCommit()->getLastTime();
-        $this->firstTime = strtotime("2019-12-01");
-        $this->lastTime = strtotime("2020-01-04");
+        $this->firstTime = strtotime("2019-11-01");
+        //$this->lastTime = strtotime("2020-01-04");
         $this->xScale = $this->width / ($this->lastTime - $this->firstTime);
         $branches = array_filter($this->repository->getBranches(), function($b) { return $b->overlapDateRange($this->firstTime, $this->lastTime);});
         $this->yScale = $this->height / count($branches);
@@ -182,7 +182,7 @@ class Timeline
         return array($x,$y);
     }
 
-    private function makeLink($c, $p)
+    private function makeLink(Commit $c, Commit $p)
     {
         list($x1, $y1) = $this->getXY($p);
         list($x2, $y2) = $this->getXY($c);
@@ -204,8 +204,9 @@ class Timeline
             $y1c = $y1 + $this->commitRadius*2;
             $y2c = $y2 + $this->commitRadius*2;
         }
+        $stroke = $p->getLastTime() <= $c->getFirstTime()  ? "stroke:rgb(100,100,100);stroke-width:1":"stroke:rgb(200,0,0);stroke-width:2";
         //return "<line x1=\"$x\" y1=\"$y\" x2=\"$x2\" y2=\"$y2\" style=\"stroke:rgb(100,100,100);stroke-width:1\" />";
-        return "<path d=\"M $x1 $y1 C $x1c $y1c, $x2c $y2c, $x2 $y2\"  style=\"stroke:rgb(100, 100, 100);stroke-width:1;fill:none;\" />".
+        return "<path d=\"M $x1 $y1 C $x1c $y1c, $x2c $y2c, $x2 $y2\"  style=\"$stroke;fill:none;\" />".
             "<circle r='1.5' cx='$x2'  cy='$y2' style='fill:rgb(0,0,0);stoke:none;' />";
     }
 
