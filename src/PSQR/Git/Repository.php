@@ -141,7 +141,12 @@ class Repository
         $tagList = $this->git("tag --list", array("tag"));
         foreach($tagList as $t)
         {
-            $this->tags[$t] = $this->commits[$this->gitRaw("rev-parse \"".$t."\"")];
+            $c = $this->gitRaw("rev-parse \"".$t."\"");
+            if(isset($this->commits[$c])) {
+                $this->tags[$t] = $this->commits[$c];
+            } else {
+                file_put_contents('php://stderr', "ERROR: Could not find commit for tag: \"".$t."\"\n");
+            }
         }
     }
 
