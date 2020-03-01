@@ -65,6 +65,15 @@ class Repository
         {
             print($str);
         }
+        else if($str != ".")
+        {
+            file_put_contents('php://stderr', "[".date("Y-m-d H:i:s")."]: ".$str."\n");
+        }
+    }
+
+    private function error($str)
+    {
+        file_put_contents('php://stderr', "[".date("Y-m-d H:i:s")."]: ".$str."\n");
     }
 
     public function init($verbose=true) {
@@ -118,10 +127,14 @@ class Repository
         {
             if($i['name'] == "undefined")
             {
-                throw new \Exception("could not find branch for: ".$i['sha']);
+                $this->log(print_r($i, true));
+                $this->log("could not find branch for: ".$i['sha']);
             }
-            $this->commits[$i['sha']]->nameRev = $i['name'];
-            $this->log(".");
+            else
+            {
+                $this->commits[$i['sha']]->nameRev = $i['name'];
+                $this->log(".");
+            }
         }
         $this->log("Done\n");
 
@@ -136,6 +149,14 @@ class Repository
 
         // Prune empty branches
         $this->branches = array_filter($this->branches, function($b){return count($b->history) > 0;});
+
+        /*
+        print("<pre>");
+        foreach($this->branches as $b) {
+            print($b->refname." (".$b->getType().")\n");
+        }
+        die();
+        */
 
         // Tags
         $tagList = $this->git("tag --list", array("tag"));
