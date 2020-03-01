@@ -86,13 +86,19 @@ class Branch
 
     public function isRelease()
     {
-        return strpos($this->refname, "release/") !== false;
+        return strpos($this->refname, "/release/") !== false;
     }
 
     public function isTag()
     {
-        return strpos($this->refname, "tags/") !== false;
+        return strpos($this->refname, "/tags/") !== false;
     }
+
+    public function isPull()
+    {
+        return strpos($this->refname, "/pull/") !== false;
+    }
+
 
     public function isUnmerged()
     {
@@ -134,6 +140,10 @@ class Branch
         if($this->isTag())
         {
             return "tag";
+        }
+        if($this->isPull())
+        {
+            return "pull";
         }
         return "feature";
     }

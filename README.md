@@ -8,9 +8,12 @@ to track releases, feature branches, etc.
 Get started
 --
 The following steps should get you started:
-1. Clone your repository (clean and preferably as a bare clone):
+1. Clone your repository (clean and as a mirror):
 
-        git clone git@hostname:some/repo --bare
+        git clone git@hostname:some/repo --mirror some-repo-mirror
+        # Or update (by fetching everything from remote, WARNING: Will overwrite the clone completely)
+        cd some-repo-mirror
+        git remote update
         
 2. Configure this project to point at the repository clone
 

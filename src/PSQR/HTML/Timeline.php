@@ -61,7 +61,7 @@ class Timeline
         $this->firstTime = strtotime("2019-11-01");
         //$this->lastTime = strtotime("2020-01-04");
         $this->xScale = $this->width / ($this->lastTime - $this->firstTime);
-        $branches = array_filter($this->repository->getBranches(), function($b) { return $b->overlapDateRange($this->firstTime, $this->lastTime);});
+        $branches = array_filter($this->repository->getBranches(), function($b) { return !$b->isPull() && $b->overlapDateRange($this->firstTime, $this->lastTime);});
         $this->yScale = $this->height / count($branches);
 
         // Y-axis
