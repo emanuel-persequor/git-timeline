@@ -130,9 +130,10 @@ class Timeline
         foreach($this->repository->tags as $tag => $commit)
         {
             list($x,$y) = $this->getXY($commit);
-            $y += $this->yScale;
-            $this->svg .= "<text x=\"$x\" y=\"$y\" style=\"stroke:yellow; stroke-width:0.6em\" transform=\"rotate(90 $x,$y)\">".$tag."</text>\n";
-            $this->svg .= "<text x=\"$x\" y=\"$y\" style=\"stroke:black;\" transform=\"rotate(90 $x,$y)\">".$tag."</text>\n";
+            $y -= 1;
+            $x -= 4;
+            $this->svg .= "<text x=\"$x\" y=\"$y\" style=\"stroke:yellow; stroke-width:0.4em\" font-size='10' transform=\"rotate(-45 $x,$y)\">".$tag."</text>\n";
+            $this->svg .= "<text x=\"$x\" y=\"$y\" style=\"stroke:black;\" font-size='10' transform=\"rotate(-45 $x,$y)\">".$tag."</text>\n";
         }
     }
 
