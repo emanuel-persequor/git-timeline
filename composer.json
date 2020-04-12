@@ -1,6 +1,6 @@
 {
   "name":"psqr/git-timeline",
-  "version":"0.1",
+  "version":"1.0.0",
   "description":"A timeline based visualizer for GIT",
   "license": "MIT",
   "authors": [
