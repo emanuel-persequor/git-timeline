@@ -10,6 +10,7 @@ class Commit
     public $short;
     public $subject;
     public $nameRev;
+    public $data;
     /**
      * @var Branch
      */
@@ -30,6 +31,9 @@ class Commit
         $this->short = $logData['short'];
         $this->subject = $logData['subject'];
         $this->data = $logData;
+        foreach(array('files_changed', 'lines_added', 'lines_deleted') as $f) {
+            $this->data[$f] = 0;
+        }
     }
 
     public function isDefaultBranch()
@@ -117,8 +121,24 @@ class Commit
         return $this->data['author'];
     }
 
+    public function getAuthorEmail()
+    {
+        return $this->data['author_email'];
+    }
+
     public function getSubject()
     {
         return $this->data['subject'];
+    }
+
+    public function getFakeCommitCmd($msg)
+    {
+        $cmd =  'GIT_AUTHOR_NAME="'.$this->getAuthor().'" '; // is the human-readable name in the “author” field.
+        $cmd .= 'GIT_AUTHOR_EMAIL="'.$this->getAuthorEmail().'" '; // is the email for the “author” field.
+        $cmd .= 'GIT_AUTHOR_DATE="'.$this->getAuthorDate().'" '; // is the timestamp used for the “author” field.
+        $cmd .= 'GIT_COMMITTER_NAME="PSQR" '; // sets the human name for the “committer” field.
+        $cmd .= 'GIT_COMMITTER_EMAIL="devteam@psqr.dev" '; // is the email address for the “committer” field.
+        $cmd .= 'GIT_COMMITTER_DATE="'.$this->getCommitDate().'" '; // is used for the timestamp in the “committer” field.
+        return $cmd." git commit -m \"".$msg."\"";
     }
 }

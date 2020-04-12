@@ -86,11 +86,31 @@ class Repository
         $this->defaultBranch = str_replace("origin/", "", $this->gitRaw("symbolic-ref --short ".($this->bareRepository?"HEAD":"refs/remotes/origin/HEAD")));
 
         // Commits
-        $lines = $this->git('log --reverse --all --parents --pretty=format:"%H|%h|%P|%an|%cI|%aI|%s"', array('sha','short','parents','author','commit_date','author_date','subject'));
+        $lines = $this->git('log --reverse --all --parents --pretty=format:"%H|%h|%P|%an|%ae|%cI|%aI|%s"', array('sha','short','parents','author','author_email','commit_date','author_date','subject'));
         $this->log("Loading ".count($lines)." commits: ");
         foreach($lines as $l) {
             $this->commits[$l['sha']] = new Commit($this, $l);
             $this->log(".");
+        }
+        $this->log("Done\n");
+
+        // Add modified/added/deleted stats
+        $this->log("Reading changed/added/deleted for the ".count($lines)." commits: ");
+        $lastSha = null;
+        foreach($this->git("log --reverse --all --shortstat --pretty=%H", array()) as $line) {
+            $line = trim($line);
+            if($line == "") {
+                // DO Nothing
+            } else if(preg_match('/^[0-9a-f]{40}$/', $line)) {
+                $lastSha = $line;
+            } elseif(preg_match('/(?<files_changed>[0-9]+) files? changed(, (?<lines_added>[0-9]+) insertion[^,]+)?(, (?<lines_deleted>[0-9]+) deletion.*)?$/', $line, $matches)) {
+                $c = $this->getCommit($lastSha);
+                foreach(array('files_changed', 'lines_added', 'lines_deleted') as $f) {
+                    $c->data[$f] = (int)@$matches[$f];
+                }
+            } else {
+                die("$line\n");
+            }
         }
         $this->log("Done\n");
 
