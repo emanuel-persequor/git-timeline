@@ -6,15 +6,14 @@ namespace PSQR\Git;
 class Commit
 {
     private $repository;
-    public $sha;
-    public $short;
-    public $subject;
-    public $nameRev;
-    public $data;
+    /**
+     * @var array
+     */
+    private $data;
     /**
      * @var Branch
      */
-    public $branch;
+    private $branch;
     /**
      * @var Commit[]
      */
@@ -24,12 +23,9 @@ class Commit
      */
     private $children = array();
 
-    public function __construct(Repository $repository, $logData)
+    public function __construct(Repository $repository, array $logData)
     {
         $this->repository = $repository;
-        $this->sha = $logData['sha'];
-        $this->short = $logData['short'];
-        $this->subject = $logData['subject'];
         $this->data = $logData;
         foreach(array('files_changed', 'lines_added', 'lines_deleted') as $f) {
             $this->data[$f] = 0;
@@ -45,12 +41,12 @@ class Commit
     {
         if(is_null($this->branch))
         {
-            if(is_null($this->nameRev))
+            if(!isset($this->data['nameRev']))
             {
-                $branch = $this->repository->git('name-rev '.$this->sha, array('sha','name-rev'), ' ');
-                $this->nameRev = $branch[0]['name-rev'];
+                $branch = $this->repository->git('name-rev '.$this->getSha(), array('sha','name-rev'), ' ');
+                $this->data['nameRev'] = $branch[0]['name-rev'];
             }
-            $this->setBranch($this->repository->findBranch(preg_replace("/[\\~\\^][0-9\\~\\^]+\$/", "", $this->nameRev)));
+            $this->setBranch($this->repository->findBranch(preg_replace("/[\\~\\^][0-9\\~\\^]+\$/", "", $this->data['nameRev'])));
         }
 
         if($this->data['parents'] != "")
@@ -58,8 +54,8 @@ class Commit
             foreach (explode(" ", $this->data['parents']) as $p)
             {
                 $parent = $this->repository->getCommit($p);
-                $this->parents[] = $parent;
-                $parent->children[] = $this;
+                $this->parents[$parent->getSha()] = $parent;
+                $parent->children[$this->getSha()] = $this;
             }
         }
     }
@@ -116,6 +112,24 @@ class Commit
         return count($this->children) == 0;
     }
 
+    public function setData($key, $value)
+    {
+        $this->data[$key] = $value;
+    }
+
+    public function getData($key=null)
+    {
+        if(is_null($key)) {
+            return $this->data;
+        }
+        return @$this->data[$key];
+    }
+
+    public function getSha()
+    {
+        return $this->data['sha'];
+    }
+
     public function getAuthor()
     {
         return $this->data['author'];
@@ -131,6 +145,16 @@ class Commit
         return $this->data['subject'];
     }
 
+    public function getRawBody()
+    {
+        return $this->data['raw_body'];
+    }
+
+    public function getChildren(): array
+    {
+        return $this->children;
+    }
+
     public function getFakeCommitCmd($msg)
     {
         $cmd =  'GIT_AUTHOR_NAME="'.$this->getAuthor().'" '; // is the human-readable name in the “author” field.
@@ -140,5 +164,10 @@ class Commit
         $cmd .= 'GIT_COMMITTER_EMAIL="devteam@psqr.dev" '; // is the email address for the “committer” field.
         $cmd .= 'GIT_COMMITTER_DATE="'.$this->getCommitDate().'" '; // is used for the timestamp in the “committer” field.
         return $cmd." git commit -m \"".$msg."\"";
+    }
+
+    public function getBranch(): Branch
+    {
+        return $this->branch;
     }
 }

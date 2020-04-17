@@ -39,16 +39,39 @@ class Repository
         $this->gitdir = $gitdir;
     }
 
-    public function git($cmd, $columns,$delimiter="|")
+    public function git($cmd, $columns, $delimiter="|", $linePrefix=null)
     {
         exec("git --git-dir=\"$this->gitdir\" ".$cmd, $output);
+
+        if(!is_null($linePrefix))
+        {
+            $l = strlen($linePrefix);
+            $newOutput = array();
+            foreach($output as &$line)
+            {
+                if(substr($line, 0, $l) == $linePrefix)
+                {
+                    $newOutput[] = substr($line, $l);
+                }
+                else
+                {
+                    $newOutput[count($newOutput)-1] .= "\n".$line;
+                }
+            }
+            $output = $newOutput;
+        }
 
         foreach($output as &$line)
         {
             $line = trim($line);
             if(count($columns) > 1)
             {
-                $line = array_combine($columns, explode($delimiter, $line, count($columns)));
+                $values = explode($delimiter, $line, count($columns));
+                if(count($values) != count($columns))
+                {
+                    throw new \Exception("Mismatch in column count: ".print_r($columns)." vs. ".print_r($values));
+                }
+                $line = array_combine($columns, $values);
             }
         }
         return $output;
@@ -86,7 +109,7 @@ class Repository
         $this->defaultBranch = str_replace("origin/", "", $this->gitRaw("symbolic-ref --short ".($this->bareRepository?"HEAD":"refs/remotes/origin/HEAD")));
 
         // Commits
-        $lines = $this->git('log --reverse --all --parents --pretty=format:"%H|%h|%P|%an|%ae|%cI|%aI|%s"', array('sha','short','parents','author','author_email','commit_date','author_date','subject'));
+        $lines = $this->git('log --reverse --all --parents --pretty=format:"<GIT_LINE>%H|%h|%P|%an|%ae|%cI|%aI|%s|%B"', array('sha','short','parents','author','author_email','commit_date','author_date','subject', 'raw_body'), '|', '<GIT_LINE>');
         $this->log("Loading ".count($lines)." commits: ");
         foreach($lines as $l) {
             $this->commits[$l['sha']] = new Commit($this, $l);
@@ -106,7 +129,7 @@ class Repository
             } elseif(preg_match('/(?<files_changed>[0-9]+) files? changed(, (?<lines_added>[0-9]+) insertion[^,]+)?(, (?<lines_deleted>[0-9]+) deletion.*)?$/', $line, $matches)) {
                 $c = $this->getCommit($lastSha);
                 foreach(array('files_changed', 'lines_added', 'lines_deleted') as $f) {
-                    $c->data[$f] = (int)@$matches[$f];
+                    $c->setData($f, (int)@$matches[$f]);
                 }
             } else {
                 die("$line\n");
@@ -147,12 +170,11 @@ class Repository
         {
             if($i['name'] == "undefined")
             {
-                $this->log(print_r($i, true));
-                $this->log("could not find branch for: ".$i['sha']);
+                $this->log($i['sha'].": No name-rev found");
             }
             else
             {
-                $this->commits[$i['sha']]->nameRev = $i['name'];
+                $this->commits[$i['sha']]->setData('nameRev', $i['name']);
                 $this->log(".");
             }
         }
@@ -186,7 +208,7 @@ class Repository
             if(isset($this->commits[$c])) {
                 $this->tags[$t] = $this->commits[$c];
             } else {
-                file_put_contents('php://stderr', "ERROR: Could not find commit for tag: \"".$t."\"\n");
+                $this->log("ERROR: Could not find commit for tag: \"".$t."\"");
             }
         }
     }
@@ -199,11 +221,7 @@ class Repository
         return $this->commits;
     }
 
-    /**
-     * @param $sha
-     * @return Commit
-     */
-    public function getCommit($sha)
+    public function getCommit($sha):Commit
     {
         if(!isset($this->commits[$sha]))
         {
